@@ -111,3 +111,41 @@ Now let's look into alerts Logs Stream on CloudWatch Logs.
 Falco detected that a shell was spawned in our nginx container.
 
 ## Creating Custom Rules
+
+Falco allows you to create custom rules using YAML, you can pass this custom values to Falco chart when installing or upgrading it.
+
+If you want to know more about how to create custom rules click [here](https://falco.org/docs/rules/).
+
+Let's create a custom rule that will notify us of anytime the command `whoami` runs inside a container.
+
+```yaml
+- rule: The program "locate" is run in a container
+      desc: An event will trigger every time you run "locate" in a container
+      condition: evt.type = execve and evt.dir=< and container.id != host and proc.name = locate
+      output: "locate command run in container (user=%user.name %container.info parent=%proc.pname cmdline=%proc.cmdline)"
+      priority: NOTICE
+      warn_evttypes: False
+```
+
+We have to upgrade the chart with the custom value, so for that wxecute the following command.
+
+```shell
+helm upgrade falco -f custom-rules/custom-rules.yaml falcosecurity/falco
+
+kubectl get po -ndefault -w
+```
+
+Once the Falco pods are running, let's log into a container and execute `whoami` command.
+
+```shell
+kubectl exec -it $(kubectl get po | grep -i nginx | awk '{print $1}' | head -n1) -- whoami
+```
+
+Go to CloudWatch Falco logs as we did above and check it.
+
+<p align="center"> 
+<img src="images/falco03.png">
+</p>
+
+We are done, so with Falco custom rules we can create any rule that we want to protect our environment.
+
