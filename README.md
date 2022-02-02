@@ -1,6 +1,6 @@
 # Container Runtime Security with Falco
 
-This demonstration is designed to explain how to use CNCF Falco for your Container Runtime security in Amazon EKS.
+This demonstration is designed to explain how to use CNCF Falco for your Container Runtime security in Amazon EKS. We are going from deploying Falco inside you EKS cluster integrating with CloudWatch and create custom metrics.
 
 **We are going to use a already provisioned EKS (Elastic Kubernetes Service) cluster, if you want to provision a new cluster please check [here](https://docs.aws.amazon.com/eks/latest/userguide/getting-started-eksctl.html).**
 
