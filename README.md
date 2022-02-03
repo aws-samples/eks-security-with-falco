@@ -151,7 +151,7 @@ We are done, so with Falco custom rules we can create any rule that we want to p
 
 ## Integrate Falco findings with Security Hub
 
-We already have a published project that integrates Falco fidings with Security Hub using Lambda, check it [here](git@github.com:aws-samples/aws-securityhub-falco-ecs-eks-integration.git).
+We already have a published project that integrates Falco fidings with Security Hub using Lambda, check it [here](https://github.com/aws-samples/aws-securityhub-falco-ecs-eks-integration).
 
 ## Security
 
