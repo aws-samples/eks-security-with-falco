@@ -1,0 +1,100 @@
+customRules:
+  # rules-traefik.yaml: |-
+  #   - macro: traefik_consider_syscalls
+  #     condition: (evt.num < 0)
+    
+  #   - macro: app_traefik
+  #     condition: container and container.image startswith "traefik"
+    
+  #   # Restricting listening ports to selected set
+    
+  #   - list: traefik_allowed_inbound_ports_tcp
+  #     items: [443, 80, 8080]
+    
+  #   - rule: Unexpected inbound tcp connection traefik
+  #     desc: Detect inbound traffic to traefik using tcp on a port outside of expected set
+  #     condition: inbound and evt.rawres >= 0 and not fd.sport in (traefik_allowed_inbound_ports_tcp) and app_traefik
+  #     output: Inbound network connection to traefik on unexpected port (command=%proc.cmdline pid=%proc.pid connection=%fd.name sport=%fd.sport user=%user.name %container.info image=%container.image)
+  #     priority: NOTICE
+    
+  #   # Restricting spawned processes to selected set
+    
+  #   - list: traefik_allowed_processes
+  #     items: ["traefik"]
+    
+  #   - rule: Unexpected spawned process traefik
+  #     desc: Detect a process started in a traefik container outside of an expected set
+  #     condition: spawned_process and not proc.name in (traefik_allowed_processes) and app_traefik
+  #     output: Unexpected process spawned in traefik container (command=%proc.cmdline pid=%proc.pid user=%user.name %container.info image=%container.image)
+  #     priority: NOTICE
+  rules-nginx.yaml: |-
+    - macro: nginx_consider_syscalls
+      condition: (evt.num < 0)
+    
+    - macro: app_nginx
+      condition: container and container.image contains "nginx"
+    
+    # Any outbound traffic raises a WARNING
+    
+    - rule: Unauthorized process opened an outbound connection (nginx)
+      desc: A nginx process tried to open an outbound connection and is not whitelisted
+      condition: outbound and evt.rawres >= 0 and app_nginx
+      output: Non-whitelisted process opened an outbound connection (command=%proc.cmdline
+        connection=%fd.name)
+      priority: WARNING
+    
+    
+    # Restricting listening ports to selected set
+    
+    - list: nginx_allowed_inbound_ports_tcp
+      items: [80, 443, 8080, 8443]
+    
+    - rule: Unexpected inbound tcp connection nginx
+      desc: Detect inbound traffic to nginx using tcp on a port outside of expected set
+      condition: inbound and evt.rawres >= 0 and not fd.sport in (nginx_allowed_inbound_ports_tcp) and app_nginx
+      output: Inbound network connection to nginx on unexpected port (command=%proc.cmdline pid=%proc.pid connection=%fd.name sport=%fd.sport user=%user.name %container.info image=%container.image)
+      priority: NOTICE
+    
+    # Restricting spawned processes to selected set
+    
+    - list: nginx_allowed_processes
+      items: ["nginx", "app-entrypoint.", "basename", "dirname", "grep", "nami", "node", "tini"]
+    
+    
+    # Restricting files read or written to specific set
+    
+    - list: nginx_allowed_file_prefixes_readwrite
+      items: ["/var/log/nginx", "/var/run"]
+    # Remember to add your nginx cache path
+    
+    - rule: Unexpected file access readwrite for nginx
+      desc: Detect an attempt to access a file readwrite other than below an expected list of directories
+      condition: (open_write) and not fd.name pmatch (nginx_allowed_file_prefixes_readwrite) and app_nginx
+      output: Unexpected file accessed readwrite for nginx (command=%proc.cmdline pid=%proc.pid file=%fd.name %container.info image=%container.image)
+      priority: NOTICE
+    
+    # Restricting syscalls to selected set
+    
+    - list: nginx_allowed_syscalls
+      items: [accept, bind, clone, connect, dup, listen, mkdir, open, recvfrom, recvmsg, sendto, setgid, setuid, socket, socketpair]
+    
+    - rule: Unexpected syscall nginx
+      desc: Detect a syscall in a nginx container outside of an expected set
+      condition: nginx_consider_syscalls and not evt.type in ("<unknown>", nginx_allowed_syscalls) and app_nginx
+      output: Unexpected syscall in nginx container (command=%proc.cmdline pid=%proc.pid user=%user.name syscall=%evt.type args=%evt.args %container.info image=%container.image)
+      priority: NOTICE
+      warn_evttypes: False
+
+    - rule: The program "whoami" is run in a container
+      desc: An event will trigger every time you run "whoami" in a container
+      condition: evt.type = execve and evt.dir=< and container.id != host and proc.name = whoami
+      output: "whoami command run in container (user=%user.name %container.info parent=%proc.pname cmdline=%proc.cmdline)"
+      priority: WARNING
+      warn_evttypes: False
+
+    - rule: The program "locate" is run in a container
+      desc: An event will trigger every time you run "locate" in a container
+      condition: evt.type = execve and evt.dir=< and container.id != host and proc.name = locate
+      output: "locate command run in container (user=%user.name %container.info parent=%proc.pname cmdline=%proc.cmdline)"
+      priority: NOTICE
+      warn_evttypes: False
